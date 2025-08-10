@@ -5,6 +5,7 @@ import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
 import { listConversations } from "@/lib/api";
 import type { Conversation } from "@/types/chat";
+import { usePathname } from "next/navigation";
 import {
   createConversationAction,
   deleteConversationAction,
@@ -16,6 +17,14 @@ export function ConversationList({ selectedId }: { selectedId?: number }) {
   const [loading, setLoading] = React.useState(true);
   const [renamingId, setRenamingId] = React.useState<number | null>(null);
   const [title, setTitle] = React.useState("");
+  const pathname = usePathname();
+
+  const activeId = React.useMemo(() => {
+    if (selectedId != null) return selectedId;
+    const match = pathname?.match(/\/conversations\/(\d+)/);
+    const id = match ? Number(match[1]) : undefined;
+    return Number.isFinite(id as number) ? (id as number) : undefined;
+  }, [pathname, selectedId]);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -33,7 +42,7 @@ export function ConversationList({ selectedId }: { selectedId?: number }) {
 
   React.useEffect(() => {
     load();
-  }, [load]);
+  }, [load, pathname]);
 
   const onCreate = async () => {
     const fd = new FormData();
@@ -44,6 +53,7 @@ export function ConversationList({ selectedId }: { selectedId?: number }) {
     const fd = new FormData();
     fd.set("id", String(id));
     await deleteConversationAction(fd);
+    await load();
   };
 
   const startRename = (c: Conversation) => {
@@ -78,7 +88,8 @@ export function ConversationList({ selectedId }: { selectedId?: number }) {
           items.map((c) => (
             <div
               key={c.id}
-              className={`group rounded-md border px-2 py-2 ${selectedId === c.id ? "border-primary/40 bg-primary/5" : "border-default-200 bg-content2"}`}
+              className={`group rounded-md border px-2 py-2 ${activeId === c.id ? "border-primary/40 bg-primary/5" : "border-default-200 bg-content2"}`}
+              data-selected={activeId === c.id || undefined}
             >
               {renamingId === c.id ? (
                 <div className="flex items-center gap-2">
