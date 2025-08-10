@@ -2,6 +2,8 @@
 
 import * as React from "react";
 import type { ChatMessage } from "@/types/chat";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 export function MessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === "user";
@@ -14,7 +16,13 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
             : "bg-content2 border-default-200"
         }`}
       >
-        {message.content || <span className="opacity-60">…</span>}
+        {message.content ? (
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {message.content}
+          </ReactMarkdown>
+        ) : (
+          <span className="opacity-60">…</span>
+        )}
       </div>
     </div>
   );

@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
+import { Switch } from "@heroui/switch";
 import { usePathname } from "next/navigation";
 import { getConversation } from "@/lib/api";
 import { updateConversationSettingsAction } from "@/app/(chat)/conversations/actions";
@@ -18,6 +19,8 @@ export function ChatHeader() {
   const [systemPrompt, setSystemPrompt] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [mounted, setMounted] = React.useState(false);
+  const [webAccessEnabled, setWebAccessEnabled] = React.useState(false);
+  const [searchTopK, setSearchTopK] = React.useState("3");
 
   React.useEffect(() => setMounted(true), []);
 
@@ -37,6 +40,8 @@ export function ChatHeader() {
       }
       setTemperature(String(parsed.temperature ?? "0.7"));
       setSystemPrompt(parsed.systemPrompt ?? "");
+      setWebAccessEnabled(Boolean(parsed.webAccessEnabled ?? false));
+      setSearchTopK(String(parsed.searchTopK ?? "3"));
       setIsOpen(true);
     } finally {
       setLoading(false);
@@ -52,16 +57,22 @@ export function ChatHeader() {
     const clampedTemp = Number.isFinite(tempNum)
       ? Math.max(0, Math.min(2, tempNum))
       : 0.7;
+    const topKNum = Number(searchTopK);
+    const clampedTopK = Number.isFinite(topKNum)
+      ? Math.max(1, Math.min(5, Math.trunc(topKNum)))
+      : 3;
     const payload = {
       temperature: clampedTemp,
       systemPrompt,
+      webAccessEnabled,
+      searchTopK: clampedTopK,
     };
     const fd = new FormData();
     fd.set("id", String(conversationId));
     fd.set("settings", JSON.stringify(payload));
     await updateConversationSettingsAction(fd);
     setIsOpen(false);
-  }, [conversationId, temperature, systemPrompt]);
+  }, [conversationId, temperature, systemPrompt, webAccessEnabled, searchTopK]);
 
   return (
     <header className="sticky top-0 z-10 border-b border-default-100 bg-background/60 backdrop-blur px-4 py-3">
@@ -110,6 +121,32 @@ export function ChatHeader() {
                   max={2}
                   step={0.1}
                   isDisabled={loading}
+                />
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">Web browsing</span>
+                    <span className="text-xs text-default-500">
+                      Allow the assistant to search and fetch web pages
+                    </span>
+                  </div>
+                  <Switch
+                    isSelected={webAccessEnabled}
+                    onValueChange={setWebAccessEnabled}
+                    isDisabled={loading}
+                  >
+                    Enabled
+                  </Switch>
+                </div>
+                <Input
+                  label="Search results (topK)"
+                  value={searchTopK}
+                  onValueChange={setSearchTopK}
+                  placeholder="1 - 5"
+                  type="number"
+                  min={1}
+                  max={5}
+                  step={1}
+                  isDisabled={loading || !webAccessEnabled}
                 />
                 <div className="flex flex-col gap-1">
                   <label className="text-sm text-default-600">

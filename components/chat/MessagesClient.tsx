@@ -10,11 +10,13 @@ export function MessagesClient({
 }: {
   initialMessages: ChatMessage[];
 }) {
-  const { messages, setMessages } = useChatContext();
+  const { messages, setMessages, isStreaming } = useChatContext();
   const endRef = React.useRef<HTMLDivElement | null>(null);
   React.useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length]);
+    endRef.current?.scrollIntoView({
+      behavior: isStreaming ? "auto" : "smooth",
+    });
+  }, [messages, isStreaming]);
   React.useEffect(() => {
     // In case of hydration from SSR, seed context if empty
     if (messages.length === 0 && initialMessages.length > 0) {

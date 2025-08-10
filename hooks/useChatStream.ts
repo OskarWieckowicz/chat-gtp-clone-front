@@ -22,6 +22,7 @@ export function useChatStream(conversationId?: number) {
       setMessages((prev) => [...prev, userMsg]);
 
       const assistantId = crypto.randomUUID();
+      // Ensure a clean block start to help markdown render correctly mid-stream
       setMessages((prev) => [
         ...prev,
         { id: assistantId, role: "assistant", content: "" },
@@ -55,28 +56,30 @@ export function useChatStream(conversationId?: number) {
           if (done) break;
           buffer += decoder.decode(value, { stream: true });
 
-          // Detect SSE frames ("data: ...\n\n") and plain text chunks
+          // Detect SSE frames ("data: ...\n\n"). Join multi-line data fields per SSE spec.
           if (buffer.includes("data:")) {
             const events = buffer.split("\n\n");
             // keep the last (possibly incomplete) frame in buffer
             buffer = events.pop() || "";
             for (const evt of events) {
-              const lines = evt.split("\n");
-              for (const line of lines) {
-                if (line.startsWith("data:")) {
-                  const raw = line.slice(5); // keep leading spaces as tokens may start with space
-                  const sentinel = raw.trim();
-                  if (!sentinel || sentinel === "[DONE]") continue;
-                  const payload = raw;
-                  setMessages((prev) =>
-                    prev.map((m) =>
-                      m.id === assistantId
-                        ? { ...m, content: m.content + payload }
-                        : m
-                    )
-                  );
-                }
-              }
+              const dataLines = evt
+                .split("\n")
+                .filter((l) => l.startsWith("data:"))
+                .map((l) => l.slice(5)); // preserve leading spaces in tokens
+
+              // Combine data lines with newline as per SSE spec
+              // Normalize consecutive newlines to avoid collapsed paragraphs until final render
+              const combined = dataLines.join("\n");
+              const trimmed = combined.trim();
+              if (trimmed === "[DONE]") continue;
+
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantId
+                    ? { ...m, content: m.content + combined }
+                    : m
+                )
+              );
             }
           } else {
             const text = buffer;
