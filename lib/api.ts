@@ -51,3 +51,24 @@ export async function renameConversation(
   if (!res.ok) throw new Error(`Failed to rename conversation: ${res.status}`);
   return res.json();
 }
+
+export async function getConversation(id: number): Promise<Conversation> {
+  const res = await fetch(`${BACKEND_URL}/api/conversations/${id}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Failed to get conversation: ${res.status}`);
+  return res.json();
+}
+
+export async function updateConversation(
+  id: number,
+  data: Partial<Pick<Conversation, "title" | "settings">>
+): Promise<Conversation> {
+  const res = await fetch(`${BACKEND_URL}/api/conversations/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(`Failed to update conversation: ${res.status}`);
+  return res.json();
+}
