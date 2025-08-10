@@ -1,53 +1,60 @@
-# Next.js & HeroUI Template
+# ChatGPT Clone – Frontend (Next.js)
 
-This is a template for creating applications using Next.js 14 (app directory) and HeroUI (v2).
+Next.js 15 app for a ChatGPT-like UI. It manages conversations, streams assistant replies, and provides per-conversation settings (temperature, system prompt, optional web browsing).
 
-[Try it on CodeSandbox](https://githubbox.com/heroui-inc/heroui/next-app-template)
+## Features
 
-## Technologies Used
+- Conversation sidebar (create/rename/delete)
+- Streaming chat with typing interruption
+- Markdown rendering (GFM) for assistant messages
+- Per-conversation settings modal: temperature, system prompt, web browsing options
+- Works with the Spring Boot backend via `BACKEND_URL`
 
-- [Next.js 14](https://nextjs.org/docs/getting-started)
-- [HeroUI v2](https://heroui.com/)
-- [Tailwind CSS](https://tailwindcss.com/)
-- [Tailwind Variants](https://tailwind-variants.org)
-- [TypeScript](https://www.typescriptlang.org/)
-- [Framer Motion](https://www.framer.com/motion/)
-- [next-themes](https://github.com/pacocoursey/next-themes)
+## Quick start
 
-## How to Use
+1) Configure backend endpoint
 
-### Use the template with create-next-app
-
-To create a new project based on this template using `create-next-app`, run the following command:
+Set `NEXT_PUBLIC_BACKEND_URL` (defaults to `http://localhost:8080`):
 
 ```bash
-npx create-next-app -e https://github.com/heroui-inc/next-app-template
+export NEXT_PUBLIC_BACKEND_URL=http://localhost:8080
 ```
 
-### Install dependencies
-
-You can use one of them `npm`, `yarn`, `pnpm`, `bun`, Example using `npm`:
+2) Install and run
 
 ```bash
 npm install
-```
-
-### Run the development server
-
-```bash
 npm run dev
 ```
 
-### Setup pnpm (optional)
+Open `http://localhost:3000`.
 
-If you are using `pnpm`, you need to add the following code to your `.npmrc` file:
+## Project structure
 
-```bash
-public-hoist-pattern[]=*@heroui/*
+- `app/(chat)/conversations/*`: routes and server actions for conversations
+- `components/chat/*`: chat UI (messages, composer, header, list)
+- `hooks/useChatStream.ts`: SSE streaming hook
+- `lib/api.ts`: backend API helpers
+- `types/*`: shared types
+
+## Settings
+
+Each conversation can store settings (saved via PATCH to backend):
+
+```json
+{
+  "temperature": 0.7,
+  "systemPrompt": "You are a helpful assistant.",
+  "webAccessEnabled": false,
+  "searchTopK": 3
+}
 ```
 
-After modifying the `.npmrc` file, you need to run `pnpm install` again to ensure that the dependencies are installed correctly.
+## Notes
+
+- Messages stream over SSE; if formatting looks off mid-stream it should resolve by the end. We use markdown rendering with `react-markdown` and GFM.
+- The sidebar refreshes automatically on route changes and after actions.
 
 ## License
 
-Licensed under the [MIT license](https://github.com/heroui-inc/next-app-template/blob/main/LICENSE).
+MIT
