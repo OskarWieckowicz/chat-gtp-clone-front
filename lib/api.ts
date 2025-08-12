@@ -52,6 +52,23 @@ export async function renameConversation(
   return res.json();
 }
 
+export async function uploadDocument(
+  conversationId: number,
+  file: File
+): Promise<{ documentId: number; filename: string }> {
+  const fd = new FormData();
+  fd.set("file", file);
+  const res = await fetch(
+    `${BACKEND_URL}/api/conversations/${conversationId}/documents`,
+    {
+      method: "POST",
+      body: fd,
+    }
+  );
+  if (!res.ok) throw new Error(`Failed to upload: ${res.status}`);
+  return res.json();
+}
+
 export async function getConversation(id: number): Promise<Conversation> {
   const res = await fetch(`${BACKEND_URL}/api/conversations/${id}`, {
     cache: "no-store",

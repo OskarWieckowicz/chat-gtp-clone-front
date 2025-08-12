@@ -5,7 +5,7 @@ import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
 import { Switch } from "@heroui/switch";
 import { usePathname } from "next/navigation";
-import { getConversation } from "@/lib/api";
+import { getConversation, uploadDocument } from "@/lib/api";
 import { updateConversationSettingsAction } from "@/app/(chat)/conversations/actions";
 import { createPortal } from "react-dom";
 
@@ -21,6 +21,7 @@ export function ChatHeader() {
   const [mounted, setMounted] = React.useState(false);
   const [webAccessEnabled, setWebAccessEnabled] = React.useState(false);
   const [searchTopK, setSearchTopK] = React.useState("3");
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   React.useEffect(() => setMounted(true), []);
 
@@ -89,6 +90,33 @@ export function ChatHeader() {
         >
           Settings
         </Button>
+        <div className="hidden sm:block">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/pdf"
+            className="hidden"
+            onChange={async (e) => {
+              const inputEl = e.currentTarget;
+              const f = inputEl.files?.[0];
+              if (!f || !conversationId) return;
+              try {
+                await uploadDocument(conversationId, f);
+              } finally {
+                // Use the element reference captured before the await
+                inputEl.value = "";
+              }
+            }}
+          />
+          <Button
+            size="sm"
+            variant="flat"
+            onPress={() => fileInputRef.current?.click()}
+            isDisabled={!conversationId}
+          >
+            Attach PDF
+          </Button>
+        </div>
       </div>
       {mounted &&
         isOpen &&
