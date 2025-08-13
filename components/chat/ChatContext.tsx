@@ -8,6 +8,7 @@ type ChatContextValue = {
   messages: ChatMessage[];
   isStreaming: boolean;
   send: (text: string) => Promise<void> | void;
+  sendWithImages: (text: string, images: File[]) => Promise<void> | void;
   stop: () => void;
   setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
 };
@@ -29,7 +30,7 @@ export function ChatProvider({
   initialMessages: ChatMessage[];
   children: React.ReactNode;
 }) {
-  const { messages, setMessages, isStreaming, send, stop } =
+  const { messages, setMessages, isStreaming, send, sendWithImages, stop } =
     useChatStream(conversationId);
 
   React.useEffect(() => {
@@ -39,8 +40,8 @@ export function ChatProvider({
   }, [conversationId]);
 
   const value: ChatContextValue = React.useMemo(
-    () => ({ messages, isStreaming, send, stop, setMessages }),
-    [messages, isStreaming, send, stop, setMessages]
+    () => ({ messages, isStreaming, send, sendWithImages, stop, setMessages }),
+    [messages, isStreaming, send, sendWithImages, stop, setMessages]
   );
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
