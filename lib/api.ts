@@ -69,6 +69,17 @@ export async function uploadDocument(
   return res.json();
 }
 
+export async function listConversationDocuments(
+  conversationId: number
+): Promise<Array<{ documentId: number; filename: string }>> {
+  const res = await fetch(
+    `${BACKEND_URL}/api/conversations/${conversationId}/documents`,
+    { cache: "no-store" }
+  );
+  if (!res.ok) throw new Error(`Failed to list documents: ${res.status}`);
+  return res.json();
+}
+
 export async function getConversation(id: number): Promise<Conversation> {
   const res = await fetch(`${BACKEND_URL}/api/conversations/${id}`, {
     cache: "no-store",

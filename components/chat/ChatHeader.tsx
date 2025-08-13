@@ -5,7 +5,11 @@ import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
 import { Switch } from "@heroui/switch";
 import { usePathname } from "next/navigation";
-import { getConversation, uploadDocument } from "@/lib/api";
+import {
+  getConversation,
+  uploadDocument,
+  listConversationDocuments,
+} from "@/lib/api";
 import { updateConversationSettingsAction } from "@/app/(chat)/conversations/actions";
 import { createPortal } from "react-dom";
 
@@ -22,8 +26,52 @@ export function ChatHeader() {
   const [webAccessEnabled, setWebAccessEnabled] = React.useState(false);
   const [searchTopK, setSearchTopK] = React.useState("3");
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [docs, setDocs] = React.useState<
+    Array<{ documentId: number; filename: string }>
+  >([]);
+  const [docsOpen, setDocsOpen] = React.useState(false);
+  const docsPopoverRef = React.useRef<HTMLDivElement | null>(null);
 
   React.useEffect(() => setMounted(true), []);
+
+  // Close docs popover on outside click / Escape
+  React.useEffect(() => {
+    if (!docsOpen) return;
+    function onClick(e: MouseEvent) {
+      if (
+        docsPopoverRef.current &&
+        !docsPopoverRef.current.contains(e.target as Node)
+      ) {
+        setDocsOpen(false);
+      }
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setDocsOpen(false);
+    }
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [docsOpen]);
+
+  // Fetch documents on mount and when conversation changes
+  React.useEffect(() => {
+    let aborted = false;
+    (async () => {
+      if (!conversationId) return;
+      try {
+        const items = await listConversationDocuments(conversationId);
+        if (!aborted) setDocs(items);
+      } catch (_) {
+        // ignore
+      }
+    })();
+    return () => {
+      aborted = true;
+    };
+  }, [conversationId]);
 
   const open = React.useCallback(async () => {
     if (!conversationId) {
@@ -43,6 +91,9 @@ export function ChatHeader() {
       setSystemPrompt(parsed.systemPrompt ?? "");
       setWebAccessEnabled(Boolean(parsed.webAccessEnabled ?? false));
       setSearchTopK(String(parsed.searchTopK ?? "3"));
+      // load docs list
+      const items = await listConversationDocuments(conversationId);
+      setDocs(items);
       setIsOpen(true);
     } finally {
       setLoading(false);
@@ -90,6 +141,40 @@ export function ChatHeader() {
         >
           Settings
         </Button>
+        {conversationId ? (
+          <div className="relative inline-block">
+            <Button
+              size="sm"
+              variant="light"
+              onPress={() => setDocsOpen((v) => !v)}
+            >
+              PDFs: {docs.length}
+            </Button>
+            {docsOpen && (
+              <div
+                ref={docsPopoverRef}
+                className="absolute right-0 top-full mt-2 z-[1001] w-80 max-h-60 overflow-auto rounded-medium border border-default-100 bg-background p-2 shadow-xl"
+              >
+                <div className="text-sm font-medium mb-2">Attached PDFs</div>
+                {docs.length === 0 ? (
+                  <div className="text-xs text-default-500">No PDFs</div>
+                ) : (
+                  <ul className="space-y-1">
+                    {docs.map((d) => (
+                      <li
+                        key={d.documentId}
+                        className="text-sm truncate"
+                        title={d.filename}
+                      >
+                        {d.filename}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
+        ) : null}
         <div className="hidden sm:block">
           <input
             ref={fileInputRef}
@@ -102,6 +187,9 @@ export function ChatHeader() {
               if (!f || !conversationId) return;
               try {
                 await uploadDocument(conversationId, f);
+                // refresh docs after upload
+                const items = await listConversationDocuments(conversationId);
+                setDocs(items);
               } finally {
                 // Use the element reference captured before the await
                 inputEl.value = "";
@@ -139,6 +227,18 @@ export function ChatHeader() {
                 </h2>
               </div>
               <div className="space-y-3">
+                {docs.length > 0 && (
+                  <div className="rounded-medium border border-default-100 p-2">
+                    <div className="text-sm font-medium mb-1">
+                      Attached PDFs
+                    </div>
+                    <ul className="text-sm list-disc pl-5">
+                      {docs.map((d) => (
+                        <li key={d.documentId}>{d.filename}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
                 <Input
                   label="Temperature"
                   value={temperature}
